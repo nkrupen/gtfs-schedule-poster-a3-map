@@ -3,49 +3,437 @@
 <head>
 <meta charset="UTF-8">
 <style>
-    @page { size: 800mm 1131mm; margin: 0; }
-    body { margin: 0; font-family: Arial, sans-serif; background: #3069b3; }
-    .poster { width: 800mm; height: 1131mm; display: flex; flex-direction: column; }
-    .header { padding: 40px; color: white; display: flex; justify-content: space-between; }
-    .h-stop-name { font-size: 5em; font-weight: bold; }
-    .content { background: white; margin: 20px; padding: 40px; border-radius: 40px; flex-grow: 1; font-size: {{ font_size }}; line-height: {{ line_height }}; }
-    .sc-title { font-size: 1.5em; font-weight: bold; border-bottom: 5px solid black; margin-bottom: 20px; }
-    .footer { position: relative; height: 140px; margin-top: 20px; }
-    .qr { position: absolute; right: 20px; bottom: 20px; width: 200px; height: 200px; background: white; padding: 10px; border-radius: 20px; }
+    @page { size: {{ PAGE_W_MM }}mm {{ PAGE_H_MM }}mm; margin: 0; }
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: {{ FONT_MAIN }};
+        background-color: {{ COLOR }};
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .poster-container {
+        width: {{ PAGE_W_MM }}mm;
+        height: {{ PAGE_H_MM }}mm;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .en { color: #000; }
+
+    /* ---------- HEADER ---------- */
+    .header {
+        flex: 0 0 auto;
+        background-color: {{ COLOR }};
+        padding: 15mm 20mm 5mm 20mm;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        color: white;
+    }
+    .header-left { flex: 1; min-width: 0; padding-left: 15mm; }
+    .h-stop-name {
+        font-size: 6.2em;
+        font-weight: bold;
+        color: white;
+        line-height: 1;
+        letter-spacing: -0.5px;
+        overflow-wrap: anywhere;
+    }
+
+    .h-valid-combined {
+        font-size: 3em;
+        margin-top: 15px;
+        font-weight: 300;
+        color: white;
+    }
+    .h-valid-combined .en { color: rgba(255,255,255,0.85); }
+
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 20mm;
+        text-align: center;
+        flex: 0 0 auto;
+    }
+
+    .header-info-wrapper {
+        display: flex;
+        gap: 15mm;
+        text-align: center;
+    }
+
+    .h-info-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+    }
+    .h-label {
+        font-size: 2.3em;
+        font-weight: normal;
+        margin-bottom: 8px;
+        opacity: 0.95;
+        white-space: nowrap;
+        color: white;
+    }
+    .h-label .en { color: rgba(255,255,255,0.85); }
+    .h-value {
+        font-size: 5.6em;
+        font-weight: bold;
+        line-height: 0.95;
+        color: white;
+        white-space: nowrap;
+    }
+
+    .header-logo {
+        display: block;
+        height: 40mm;
+        width: auto;
+    }
+    .header-logo svg, .header-logo img {
+        height: 100%;
+        width: auto;
+        display: block;
+    }
+    .header-logo svg { fill: white; }
+
+    /* ---------- LINE BAR ---------- */
+    .line-bar-container {
+        flex: 0 0 auto;
+        padding: 0 20mm;
+        margin-bottom: 10mm;
+    }
+    .line-bar {
+        background: white;
+        padding: 12mm 15mm;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 30px;
+        align-items: flex-start;
+        border-radius: 30px;
+    }
+    .lb-item {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-right: 40px;
+        max-width: 100%;
+    }
+    .bus-icon-wrap {
+        color: {{ COLOR }};
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .bus-icon { width: 50px; height: 50px; display: block; }
+    .lb-num {
+        font-size: 3em;
+        font-weight: bold;
+        margin-right: 0;
+        flex: 0 0 auto;
+    }
+    .lb-dest {
+        font-size: 2em;
+        font-weight: 300;
+        color: #000;
+        text-transform: uppercase;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.1;
+        max-width: 760px;
+    }
+
+    /* ---------- MAIN CONTENT LAYOUT ---------- */
+    .content-wrap {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        padding: 0 20mm 20mm 20mm;
+        overflow: hidden;
+    }
+
+    /* UNIFIED BOX */
+    .unified-box {
+        background: white;
+        border-radius: 30px;
+        padding: 15mm;
+        padding-bottom: 25mm; 
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+
+    .monfri-box {
+        margin-bottom: 0;
+        padding-bottom: 10mm;
+        background: transparent;
+    }
+
+    .bottom-row {
+        display: flex;
+        gap: 15mm;
+        align-items: stretch;
+        overflow: hidden;
+        margin-top: 0;
+        flex: 1;
+    }
+    .weekend-box {
+        flex: {{ WEEKEND_FLEX }};
+        min-width: 0;
+        background: transparent;
+    }
+
+    /* RIGHT COLUMN (Map + Footer) */
+    .right-col {
+        flex: {{ RIGHT_COL_FLEX }};
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        overflow: hidden;
+        height: 100%;
+        justify-content: flex-end;
+    }
+    
+    .spacer {
+        flex-grow: 1;
+        min-height: 0;
+    }
+
+    .map-box {
+        width: 100%;
+        flex: 0 0 auto;
+        border-radius: 20px;
+        overflow: hidden;
+        position: relative;
+        min-height: 60px; 
+        aspect-ratio: 1.25; 
+        margin-bottom: 20px;
+    }
+    .map-svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: contain; 
+    }
+
+    .alareuna-box {
+        flex: 0 0 auto;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        overflow: hidden;
+        padding: 0;
+        background: transparent;
+        margin-top: 0;
+        transform: translateY({{ ALAREUNA_OFFSET }});
+    }
+
+    .alareuna-row {
+        display: block;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        position: relative;
+    }
+    .alareuna-row svg {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+    .qr-group {
+        position: absolute;
+        bottom: 30px;
+        right: 20px;
+        z-index: 50;
+    }
+    .qr-box {
+        background-color: white;
+        padding: 20px;
+        border-radius: 30px;
+        width: 240px;
+        height: 240px;
+    }
+    .qr-img { width: 100%; height: 100%; display: block; }
+
+    /* ---------- SCHEDULE ---------- */
+    .sc-block { margin-bottom: {{ V_MARGIN }}; break-inside: avoid; }
+    .sc-title {
+        font-size: {{ FONT_SIZE }};
+        font-weight: bold;
+        border-bottom: 4px solid black;
+        padding-bottom: 8px;
+        margin-bottom: {{ V_MARGIN }};
+        break-after: avoid;
+    }
+    .sc-title .en {
+        font-weight: normal;
+        color: #000;
+        font-size: 1em;
+        margin-left: 10px;
+    }
+
+    .sc-header {
+        border-bottom: 3px solid black;
+        font-weight: bold;
+        background-color: white !important;
+        align-items: flex-end;
+        padding-bottom: 6px;
+        font-size: calc({{ HEADER_FONT_SIZE }} * 1.15) !important;
+    }
+
+    .sc-row {
+        display: flex;
+        border-bottom: 1px solid #ddd;
+        padding: 0;
+        font-size: {{ FONT_SIZE }};
+        line-height: {{ LINE_HEIGHT }};
+        page-break-inside: avoid;
+        break-inside: avoid;
+        width: 100%;
+        align-items: stretch;
+    }
+    .sc-row:nth-child(odd):not(.sc-header) { background-color: #f2f2f2; }
+
+    .sc-h {
+        width: 7.0em;
+        font-weight: bold;
+        white-space: nowrap;
+        flex-shrink: 0;
+        background-color: transparent;
+        color: black;
+        padding: 4px 6px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+    }
+    .sc-m {
+        flex: 1;
+        padding: 4px 0 4px 10px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.8em;
+        background-color: transparent;
+    }
+
+    .time-group {
+        white-space: nowrap;
+        display: inline-block;
+    }
+    .s-line {
+        font-size: 1.0em;
+        color: #000;
+        vertical-align: middle;
+        margin-right: 2px;
+        margin-left: 2px;
+    }
+
+    /* ---------- LEGEND ---------- */
+    .legend-container {
+        margin-top: 25px;
+        font-size: 2.1em;
+        color: #333;
+        line-height: 1.3;
+        column-count: 2;
+        column-gap: 20mm;
+        width: 100%;
+        break-inside: avoid;
+    }
+    .legend-item { break-inside: avoid; margin-bottom: 5px; }
+    .legend-badges { margin-top: 10px; }
+    .legend-note { margin-top: 6px; }
+
+    .section-title {
+        font-size: 3.8em;
+        font-weight: bold;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 20px;
+    }
+    .section-title .en {
+        font-weight: normal;
+        color: #000;
+        font-size: 0.7em;
+    }
 </style>
 </head>
 <body>
-    <div class="poster">
+    <div class="poster-container">
+
         <div class="header">
-            <div>
-                <div class="h-stop-name">{{ stop_name }}</div>
-                <div style="font-size: 2em;">Voimassa / Valid: {{ date_label }}</div>
+            <div class="header-left">
+                <div class="h-stop-name">{{ STOP_NAME }}</div>
+                <div class="h-valid-combined">Aikataulut ovat voimassa | <span class="en"><i>Timetables valid</i></span> {{ DATE_LABEL }}</div>
             </div>
-            <div style="text-align: right;">
-                <div style="font-size: 3em;">{{ stop_zone }}</div>
-                {{ stop_number_html }}
-                <div style="height: 100px;">{{ logo_html }}</div>
+
+            <div class="header-right">
+                <div class="header-info-wrapper">
+                    <div class="h-info-group">
+                        <div class="h-label">Vyöhyke <span class="en">| <i>Zone</i></span></div>
+                        <div class="h-value">{{ STOP_ZONE }}</div>
+                    </div>
+                    {{ STOP_NUMBER_HTML }}
+                </div>
+                <div class="header-logo">
+                    {{ LOGO_HTML }}
+                </div>
             </div>
         </div>
-        <div class="content">
-            <div class="sc-title">Maanantai&ndash;perjantai / Monday&ndash;Friday</div>
-            {{ monfri_html }}
-            {{ legend_html }}
-            <div style="display: flex; gap: 40px; margin-top: 40px;">
-                <div style="flex: 1;">
-                    <div class="sc-title">Lauantai / Saturday</div>
-                    {{ saturday_html }}
+
+        <div class="line-bar-container">
+            <div class="line-bar">{{ LINE_BAR_HTML }}</div>
+        </div>
+
+        <div class="content-wrap">
+            <div class="unified-box">
+
+                <div class="monfri-box">
+                    <div class="section-title">
+                        <div>
+                            Pysäkkiaikataulu
+                            <span class="en"><i>Stop timetable</i></span>
+                        </div>
+                        <div style="font-size: 0.7em; font-weight: normal; text-align: right;">
+                            Ajat ovat arvioaikoja | <span class="en"><i>The times are estimates</i></span>
+                        </div>
+                    </div>
+                    {{ MONFRI_HTML }}
+                    {{ LEGEND_HTML }}
                 </div>
-                <div style="flex: 1;">
-                    <div class="sc-title">Sunnuntai / Sunday</div>
-                    {{ sunday_html }}
-                    <div class="footer">
-                        {{ alareuna_svg_inline }}
-                        <div class="qr"><img src="{{ qr_img_url }}" style="width:100%;"></div>
+
+                <div class="bottom-row">
+                    <div class="weekend-box">
+                        {{ WEEKEND_HTML }}
+                    </div>
+
+                    <div class="right-col">
+                        <div class="spacer"></div>
+                        <div class="map-box">
+                            {{ MAP_SVG }}
+                        </div>
+                        <div class="alareuna-box">
+                            <div class="alareuna-row">
+                                {{ ALAREUNA_SVG }}
+                                <div class="qr-group">
+                                    <div class="qr-box">
+                                        <img class="qr-img" src="{{ QR_IMG_URL }}" alt="QR">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
             </div>
         </div>
+
     </div>
 </body>
 </html>
