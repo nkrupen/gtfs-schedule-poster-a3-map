@@ -1,50 +1,176 @@
+import pandas as pd
 import geopandas as gpd
-import requests
 import zipfile
 import os
+import warnings
+import subprocess
+import requests
+from pathlib import Path
 
-# ATTENTION: THE CODE WILL PRODUCE AN ~ 700 MB GEOJSON FILE CONTAINING ALL WATER BODIES IN FINLAND
+# --- OSMNX IMPORT ---
+try:
+    import osmnx as ox
+except ImportError:
+    print("Installing osmnx...")
+    subprocess.check_call(["pip", "install", "osmnx"])
+    import osmnx as ox
 
-def download_and_extract_finland_water(output_filename="finland_blue_areas.geojson"):
-    url = "https://download.geofabrik.de/europe/finland-latest-free.shp.zip"
-    zip_path = "finland_osm_data.zip"
-    extract_dir = "finland_osm_extracted"
-    
-    # 1. Download the zipped shapefiles
-    if not os.path.exists(zip_path):
-        print("Downloading Finland OSM data from Geofabrik (~400MB+)... This will take a moment.")
-        response = requests.get(url, stream=True)
-        with open(zip_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-        print("✅ Download complete.")
-    else:
-        print("✅ Zip file already exists, skipping download.")
+# Suppress warnings
+warnings.filterwarnings('ignore')
 
-    # 2. Extract the zip file
-    if not os.path.exists(extract_dir):
-        print("Extracting shapefiles...")
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            zip_ref.extractall(extract_dir)
-            
-    # Geofabrik water polygons are usually in a file named 'gis_osm_water_a_free_1.shp'
-    water_shp_path = os.path.join(extract_dir, "gis_osm_water_a_free_1.shp")
-    
-    if not os.path.exists(water_shp_path):
-        print(f"❌ Could not find {water_shp_path}. The Geofabrik format might have changed.")
+# -----------------------
+# Settings
+# -----------------------
+PLACES = ["Kotka, Finland", "Hamina, Finland", "Pyhtää, Finland"]
+
+# Osmdata (sea) water-polygons (WGS84 / EPSG:4326)
+WATER_POLYGONS_URL = "https://osmdata.openstreetmap.de/download/water-polygons-split-4326.zip"
+
+DATA_DIR = Path("data_osm_water")
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+OUT_GEOJSON = Path("blue_areas_kotka_hamina_pyhtaa.geojson")
+
+# Optional geometry simplification (in degrees). 0 = no simplification.
+SIMPLIFY_TOL = 0.0
+
+# -----------------------
+# Helper functions
+# -----------------------
+def download_file(url: str, dest: Path, chunk_size: int = 1024 * 1024) -> None:
+    if dest.exists() and dest.stat().st_size > 0:
+        print(f"OK: already exists {dest}")
         return
 
-    # 3. Load with GeoPandas and save to GeoJSON
-    print("Loading water shapefile into GeoPandas...")
-    water_gdf = gpd.read_file(water_shp_path)
-    
-    # Keep only the geometry to minimize file size
-    water_gdf = water_gdf[['geometry']]
-    
-    print(f"Found {len(water_gdf)} water bodies. Saving to GeoJSON...")
-    # Warning: Saving 180,000+ polygons to GeoJSON will result in a very large file!
-    water_gdf.to_file(output_filename, driver="GeoJSON")
-    print(f"✅ Successfully saved to {output_filename}")
+    print(f"Downloading: {url}")
+    with requests.get(url, stream=True, timeout=120) as r:
+        r.raise_for_status()
+        with open(dest, "wb") as f:
+            for chunk in r.iter_content(chunk_size=chunk_size):
+                if chunk:
+                    f.write(chunk)
+    print(f"OK: downloaded {dest}")
 
-if __name__ == "__main__":
-    download_and_extract_finland_water()
+def unzip_to(zip_path: Path, out_dir: Path) -> None:
+    marker = out_dir / ".unzipped_ok"
+    if marker.exists():
+        print(f"OK: already extracted -> {out_dir}")
+        return
+
+    print(f"Extracting: {zip_path} -> {out_dir}")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(zip_path, "r") as z:
+        z.extractall(out_dir)
+
+    marker.write_text("ok", encoding="utf-8")
+    print("OK: extraction complete")
+
+def ensure_wgs84(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    if gdf.crs is None:
+        return gdf.set_crs(epsg=4326)
+    return gdf.to_crs(epsg=4326)
+
+# -----------------------
+# 1) Municipality boundaries (union)
+# -----------------------
+print("Fetching municipality boundaries from OSM (geocode_to_gdf)...")
+muni_frames = []
+for place in PLACES:
+    b = ox.geocode_to_gdf(place)
+    b = ensure_wgs84(b)
+    b["municipality"] = place.split(",")[0]
+    muni_frames.append(b[["municipality", "geometry"]])
+
+muni = gpd.GeoDataFrame(pd.concat(muni_frames, ignore_index=True), crs="EPSG:4326")
+muni_union = muni.dissolve().geometry.iloc[0]  # single (Multi)Polygon
+bbox = muni_union.bounds  # (minx, miny, maxx, maxy)
+print(f"OK: municipality boundary bbox: {bbox}")
+
+# -----------------------
+# 2) Inland waters from OSM (polygons)
+# -----------------------
+print("Fetching inland waters from OSM (natural=water + waterway=riverbank)...")
+
+tags_inland = {
+    "natural": ["water"],
+    "waterway": ["riverbank"],
+}
+
+inland_frames = []
+for place in PLACES:
+    # Use features_from_place as it is the current standard for OSMnx
+    g = ox.features_from_place(place, tags_inland)
+    if len(g) == 0:
+        continue
+
+    g = g[g.geometry.type.isin(["Polygon", "MultiPolygon"])].copy()
+    g = ensure_wgs84(g)
+
+    g["municipality"] = place.split(",")[0]
+    g["water_class"] = "inland"
+    g["source"] = "osm"
+
+    # OSM id info
+    g["osm_type"] = g.index.get_level_values(0).astype(str)
+    g["osm_id"] = g.index.get_level_values(1).astype(str)
+
+    inland_frames.append(g)
+
+if inland_frames:
+    inland = gpd.GeoDataFrame(pd.concat(inland_frames, ignore_index=True), crs="EPSG:4326")
+else:
+    inland = gpd.GeoDataFrame(columns=["geometry"], geometry="geometry", crs="EPSG:4326")
+
+# Clip to municipality union (ensure "only within area")
+if len(inland) > 0:
+    inland = gpd.clip(inland, muni_union)
+
+# -----------------------
+# 3) Sea from osmdata water polygons (polygons)
+# -----------------------
+print("Fetching sea polygons from osmdata.openstreetmap.de (water-polygons-split-4326)...")
+
+zip_path = DATA_DIR / "water-polygons-split-4326.zip"
+extract_dir = DATA_DIR / "water-polygons-split-4326"
+
+download_file(WATER_POLYGONS_URL, zip_path)
+unzip_to(zip_path, extract_dir)
+
+shp_candidates = list(extract_dir.rglob("water_polygons.shp"))
+if not shp_candidates:
+    raise FileNotFoundError(f"Could not find water_polygons.shp in directory {extract_dir}")
+
+sea_shp = shp_candidates[0]
+print(f"Reading: {sea_shp}")
+
+# Read only features intersecting the bbox (speeds up significantly)
+sea = gpd.read_file(sea_shp, bbox=bbox)
+sea = ensure_wgs84(sea)
+sea = sea[sea.geometry.type.isin(["Polygon", "MultiPolygon"])].copy()
+
+# Clip to municipality union
+sea = gpd.clip(sea, muni_union)
+
+sea["water_class"] = "sea"
+sea["source"] = "osmdata_coastline"
+sea["municipality"] = "Kotka/Hamina/Pyhtää"
+
+# -----------------------
+# 4) Combine and save GeoJSON
+# -----------------------
+print("Combining datasets...")
+
+keep_inland = ["municipality", "water_class", "source", "osm_type", "osm_id", "name", "natural", "water", "waterway", "geometry"]
+inland_out = inland[[c for c in keep_inland if c in inland.columns]].copy()
+
+keep_sea = ["municipality", "water_class", "source", "geometry"]
+sea_out = sea[[c for c in keep_sea if c in sea.columns]].copy()
+
+out = gpd.GeoDataFrame(pd.concat([inland_out, sea_out], ignore_index=True), crs="EPSG:4326")
+
+if SIMPLIFY_TOL and SIMPLIFY_TOL > 0:
+    out["geometry"] = out.geometry.simplify(SIMPLIFY_TOL, preserve_topology=True)
+
+print(f"Saving: {OUT_GEOJSON}")
+out.to_file(OUT_GEOJSON, driver="GeoJSON")
+print("DONE.")
