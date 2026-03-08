@@ -16,6 +16,7 @@ This tool automatically calculates active bus trips, handles school vs. holiday 
 - **Automated PDF Conversion:** Uses headless Google Chrome to generate high-quality, print-ready PDFs.
 - **Batch Processing:** Generate posters for multiple stop IDs in one run and automatically bundle them into a single `.zip` file.
 - **QR Code Integration:** Automatically generates Digitransit-based stop links using the provided city/area name.
+- **Selection of color palette:** Allows the user to select a HEX color for background and bus icons.
 
 ---
 
@@ -94,11 +95,12 @@ The interactive prompt will ask for:
 1. **GTFS File:** Name of your GTFS zip (default: `gtfs.zip`)
 2. **Routes GPKG:** GeoPackage for drawing route lines (default: `routes.gpkg`)
 3. **Water GeoJSON:** Custom water areas (default: `blue_areas.geojson`)
-4. **Stop Numbers:** Comma-separated stop IDs (e.g., `155766,123456`)
-5. **Date Label:** Validity period printed on the poster (e.g., `10.8.2025–31.5.2026`)
-6. **School Week Start:** A normal Monday during the school term (`YYYY-MM-DD`)
-7. **Holiday Week Start:** A normal Monday during school holidays (`YYYY-MM-DD`)
-8. **City Name:** Used for the Digitransit QR code URL (e.g., `Kotka`)
+4. **HEX color code:** Theme hex color for background and bus icons (default: #3069b3)
+5. **Stop Numbers:** Comma-separated stop IDs (e.g., `155766,123456`)
+6. **Date Label:** Validity period printed on the poster (e.g., `10.8.2025–31.5.2026`)
+7. **School Week Start:** A normal Monday during the school term (`YYYY-MM-DD`)
+8. **Holiday Week Start:** A normal Monday during school holidays (`YYYY-MM-DD`)
+9. **City Name:** Used for the Digitransit QR code URL (e.g., `Kotka`)
 
 ---
 
