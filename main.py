@@ -32,7 +32,7 @@ class GTFSSchedulePoster:
     Large-format schedule poster generator.
     """
 
-    def __init__(self, gtfs_path, routes_gpkg_path=None, water_geojson_path=None):
+    def __init__(self, gtfs_path, routes_gpkg_path=None, water_geojson_path=None, theme_color="#3069b3"):
         self.gtfs_path = self._find_file(gtfs_path)
         self.data = {}
 
@@ -45,7 +45,7 @@ class GTFSSchedulePoster:
         )
 
         self.config = {
-            "color": "#3069b3",
+            "color": theme_color,
             "page_w_mm": 800,
             "page_h_mm": 1131,
             "font_main": "Arial, sans-serif",
@@ -1614,7 +1614,11 @@ if __name__ == "__main__":
 
     if gtfs_file and os.path.exists(gtfs_file):
         print(f"Found GTFS file at: {gtfs_file}")
-        gen = GTFSSchedulePoster(gtfs_file, routes_file, water_file)
+        
+        # New prompt for background and icon color
+        color_input = input("Enter theme hex color for background and bus icons (default: #3069b3): ").strip() or "#3069b3"
+        
+        gen = GTFSSchedulePoster(gtfs_file, routes_file, water_file, theme_color=color_input)
         
         print("\n--- Timetable Configuration ---")
         stop_ids_input = input("Enter stop numbers separated by comma (e.g., 155527,155528): ").strip()
