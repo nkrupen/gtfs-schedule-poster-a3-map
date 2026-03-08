@@ -1,0 +1,7 @@
+# Data manipulation and geometry
+pandas
+geopandas
+shapely
+
+# OpenStreetMap data retrieval
+osmnx
