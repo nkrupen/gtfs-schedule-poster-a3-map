@@ -1,0 +1,50 @@
+import geopandas as gpd
+import requests
+import zipfile
+import os
+
+# ATTENTION: THE CODE WILL PRODUCE AN ~ 700 MB GEOJSON FILE CONTAINING ALL WATER BODIES IN FINLAND
+
+def download_and_extract_finland_water(output_filename="finland_blue_areas.geojson"):
+    url = "https://download.geofabrik.de/europe/finland-latest-free.shp.zip"
+    zip_path = "finland_osm_data.zip"
+    extract_dir = "finland_osm_extracted"
+    
+    # 1. Download the zipped shapefiles
+    if not os.path.exists(zip_path):
+        print("Downloading Finland OSM data from Geofabrik (~400MB+)... This will take a moment.")
+        response = requests.get(url, stream=True)
+        with open(zip_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        print("✅ Download complete.")
+    else:
+        print("✅ Zip file already exists, skipping download.")
+
+    # 2. Extract the zip file
+    if not os.path.exists(extract_dir):
+        print("Extracting shapefiles...")
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_dir)
+            
+    # Geofabrik water polygons are usually in a file named 'gis_osm_water_a_free_1.shp'
+    water_shp_path = os.path.join(extract_dir, "gis_osm_water_a_free_1.shp")
+    
+    if not os.path.exists(water_shp_path):
+        print(f"❌ Could not find {water_shp_path}. The Geofabrik format might have changed.")
+        return
+
+    # 3. Load with GeoPandas and save to GeoJSON
+    print("Loading water shapefile into GeoPandas...")
+    water_gdf = gpd.read_file(water_shp_path)
+    
+    # Keep only the geometry to minimize file size
+    water_gdf = water_gdf[['geometry']]
+    
+    print(f"Found {len(water_gdf)} water bodies. Saving to GeoJSON...")
+    # Warning: Saving 180,000+ polygons to GeoJSON will result in a very large file!
+    water_gdf.to_file(output_filename, driver="GeoJSON")
+    print(f"✅ Successfully saved to {output_filename}")
+
+if __name__ == "__main__":
+    download_and_extract_finland_water()
