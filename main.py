@@ -1604,9 +1604,9 @@ if __name__ == "__main__":
         return filename
 
     print("--- File Setup ---")
-    gtfs_input = input("Enter GTFS zip filename (default: 218.zip): ").strip() or "218.zip"
-    routes_input = input("Enter Routes GPKG filename (default: rjuli.gpkg): ").strip() or "rjuli.gpkg"
-    water_input = input("Enter Water GeoJSON filename (default: blue_areas_kotka_hamina_pyhtaa.geojson): ").strip() or "blue_areas_kotka_hamina_pyhtaa.geojson"
+    gtfs_input = input("Enter GTFS zip filename (default: gtfs.zip): ").strip() or "gtfs.zip"
+    routes_input = input("Enter Routes GPKG filename (default: routes.gpkg): ").strip() or "routes.gpkg"
+    water_input = input("Enter Water GeoJSON filename (default: blue_areas.geojson): ").strip() or "blue_areas.geojson"
 
     gtfs_file = find_file_main(gtfs_input)
     routes_file = find_file_main(routes_input)
