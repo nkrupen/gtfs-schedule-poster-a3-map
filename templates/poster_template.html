@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+    @page { size: 800mm 1131mm; margin: 0; }
+    body { margin: 0; font-family: Arial, sans-serif; background: #3069b3; }
+    .poster { width: 800mm; height: 1131mm; display: flex; flex-direction: column; }
+    .header { padding: 40px; color: white; display: flex; justify-content: space-between; }
+    .h-stop-name { font-size: 5em; font-weight: bold; }
+    .content { background: white; margin: 20px; padding: 40px; border-radius: 40px; flex-grow: 1; font-size: {{ font_size }}; line-height: {{ line_height }}; }
+    .sc-title { font-size: 1.5em; font-weight: bold; border-bottom: 5px solid black; margin-bottom: 20px; }
+    .footer { position: relative; height: 140px; margin-top: 20px; }
+    .qr { position: absolute; right: 20px; bottom: 20px; width: 200px; height: 200px; background: white; padding: 10px; border-radius: 20px; }
+</style>
+</head>
+<body>
+    <div class="poster">
+        <div class="header">
+            <div>
+                <div class="h-stop-name">{{ stop_name }}</div>
+                <div style="font-size: 2em;">Voimassa / Valid: {{ date_label }}</div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 3em;">{{ stop_zone }}</div>
+                {{ stop_number_html }}
+                <div style="height: 100px;">{{ logo_html }}</div>
+            </div>
+        </div>
+        <div class="content">
+            <div class="sc-title">Maanantai&ndash;perjantai / Monday&ndash;Friday</div>
+            {{ monfri_html }}
+            {{ legend_html }}
+            <div style="display: flex; gap: 40px; margin-top: 40px;">
+                <div style="flex: 1;">
+                    <div class="sc-title">Lauantai / Saturday</div>
+                    {{ saturday_html }}
+                </div>
+                <div style="flex: 1;">
+                    <div class="sc-title">Sunnuntai / Sunday</div>
+                    {{ sunday_html }}
+                    <div class="footer">
+                        {{ alareuna_svg_inline }}
+                        <div class="qr"><img src="{{ qr_img_url }}" style="width:100%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
