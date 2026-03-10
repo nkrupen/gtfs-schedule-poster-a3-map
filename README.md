@@ -24,7 +24,7 @@ This tool automatically calculates active bus trips, handles school vs. holiday 
 
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
-**Author & Primary Maintainer:** Nikolay Krupen. The development work and testing was done using the data created by the City of Kotka. A special thanks to Paula Mussalo and Pyry Tuttavainen for helping to polish the posters' design!
+**Author & Primary Maintainer:** Nikolay Krupen. The development work and testing was done using the data created by the City of Kotka. A special thanks to Paula Mussalo and Pyry Tuttavainen for helping to finish the posters' design!
 
 ---
 
